@@ -1,0 +1,157 @@
+module Main where
+import Prelude hiding (map, filter)
+import Distribution.InstalledPackageInfo (InstalledPackageInfo(author))
+import Library (addBook)
+
+main :: IO ()
+main = do
+    putStrLn "Library Management System"
+    let library = []
+    let users = []
+    mainLoop library users
+
+mainLoop :: Library -> [User] -> IO ()
+mainLoop library users = do
+    putStrLn "1. Add Book"
+    putStrLn "2. Remove Book"
+    putStrLn "3. List Books"
+    putStrLn "4. Add User"
+    putStrLn "5. Remove User"
+    putStrLn "6. List Users"
+    putStrLn "7. Borrow Book"
+    putStrLn "8. Return Book"
+    putStrLn "9. Exit"
+    putStr "Choose an option: "
+    option <- getLine
+    case option of
+        "1" -> do
+            putStrLn "Enter book details (ID, Title, Author):"
+            details <- getLine
+            let book = parseBookDetails details
+            mainLoop (addBook book library) users
+        "2" -> do
+            putStrLn "Enter book ID to remove:"
+            id <- getLine
+            mainLoop (removeBook id library) users
+        "3" -> do
+            putStrLn "Books in Library:"
+            mapM_ (putStrLn . show) (listBooks library)
+            mainLoop library users
+        "4" -> do
+            putStrLn "Enter user details (ID, Name):"
+            details <- getLine
+            let user = parseUserDetails details
+            mainLoop library (addUser user users)
+        "5" -> do
+            putStrLn "Enter user ID to remove:"
+            id <- getLine
+            mainLoop library (removeUser id users)
+        "6" -> do
+            putStrLn "Users in System:"
+            mapM_ (putStrLn . show) (listUsers users)
+            mainLoop library users
+        "7" -> do
+            putStrLn "Enter book ID to borrow:"
+            bookID <- getLine
+            putStrLn "Enter user ID:"
+            userID <- getLine
+            let (updatedLibrary, updatedUsers) = borrowBook bookID userID library users
+            mainLoop updatedLibrary updatedUsers
+        "8" -> do
+            putStrLn "Enter book ID to return:"
+            bookID <- getLine
+            putStrLn "Enter user ID:"
+            userID <- getLine
+            let (updatedLibrary, updatedUsers) = returnBook bookID userID library users
+            mainLoop updatedLibrary updatedUsers
+        "9" -> putStrLn "Exiting..."
+        _   -> do
+            putStrLn "Invalid option. Please try again."
+            mainLoop library users
+
+data Book = Book {
+    uniqueID :: String,
+    title :: String,
+    author :: String,
+    status :: Bool
+} deriving (Show, Eq)
+
+data User = User {
+    userID :: String,
+    name :: String
+} deriving (Show, Eq)
+
+type Library = [Book]
+addBook :: Book -> Library -> Library
+addBook book library = book : library
+
+
+removeBook :: String -> Library -> Library
+removeBook id library = filter (\book -> uniqueID book /= id) library
+
+
+adduser :: User -> [User] -> [User]
+adduser user users = user : users
+
+
+removeusers :: String -> [User] -> [User]
+removeusers id users = filter (\user -> userID user /= id) users
+
+
+borrowBook :: String -> String -> Library -> [User] -> (Library, [User])
+borrowBook bookID userID library users =
+    case lookupBookByID bookID library of
+        Just book | status book -> (updateBookStatus bookID library False, users)
+                   | otherwise -> (library, users)
+        Nothing -> (library, users)
+
+
+returnBook :: String -> String -> Library -> [User] -> (Library, [User])
+returnBook bookID userID library users =
+    case lookupBookByID bookID library of
+        Just book | not (status book) -> (updateBookStatus bookID library True, users)
+                   | otherwise -> (library, users)
+        Nothing -> (library, users)
+
+lookupBookByID :: String -> Library -> Maybe Book
+lookupBookByID id library = find (\book -> uniqueID book == id) library
+
+
+updateBookStatus :: String -> Library -> Bool -> Library
+updateBookStatus id library newStatus =
+    map (\book -> if uniqueID book == id then book { status = newStatus } else book) library
+
+
+    listbooks :: Library -> [String]
+listbooks library = map title library
+
+
+listusers :: [User] -> [String]
+listusers users = map name users
+
+
+map :: (a -> b) -> [a] -> [b]
+map _ [] = []
+map f (x:xs) = f x : map f xs
+
+filter :: (a -> Bool) -> [a] -> [a]
+filter _ [] = []
+filter p (x:xs)
+    | p x       = x : filter p xs
+    | otherwise = filter p xs
+
+    -- Example usage
+    let library = [Book "1" "1984" "George Orwell" True]
+    let updatedLibrary = addBook (Book "2" "Brave New World" "Aldous Huxley" True) library
+    print updatedLibrary
+    lookupBookByTitle :: String -> Library -> Maybe Book
+    lookupBookByTitle title library = find (\book -> title book == title) libraryg
+
+    find :: (a -> Bool) -> [a] -> Maybe a
+    find _ [] = Nothing
+    find p (x:xs)
+        | p x       = Just x
+        | otherwise = find p xs
+        
+        getBookStatus :: String -> Library -> Maybe Bool
+        getBookStatus title library = fmap status (lookupBookByTitle title library)
