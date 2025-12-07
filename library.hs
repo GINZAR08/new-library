@@ -1,13 +1,21 @@
-module Main where
+module Library where
 import Prelude hiding (map, filter)
-import Distribution.InstalledPackageInfo (InstalledPackageInfo(author))
-import Library (addBook)
+import Data.List (find)
 
 main :: IO ()
 main = do
     putStrLn "Library Management System"
-    let library = []
-    let users = []
+    let library = [
+            Book "1" "1984" "George Orwell" True,
+            Book "2" "To Kill a Mockingbird" "Harper Lee" True,
+            Book "3" "The Great Gatsby" "F. Scott Fitzgerald" True,
+            Book "4" "Pride and Prejudice" "Jane Austen" True,
+            Book "5" "The Catcher in the Rye" "J.D. Salinger" False
+            ]
+    let users = [
+            User "101" "Alice Johnson",
+            User "102" "Bob Smith"
+            ]
     mainLoop library users
 
 mainLoop :: Library -> [User] -> IO ()
@@ -35,7 +43,7 @@ mainLoop library users = do
             mainLoop (removeBook id library) users
         "3" -> do
             putStrLn "Books in Library:"
-            mapM_ (putStrLn . show) (listBooks library)
+            mapM_ print (listBooks library)
             mainLoop library users
         "4" -> do
             putStrLn "Enter user details (ID, Name):"
@@ -48,7 +56,7 @@ mainLoop library users = do
             mainLoop library (removeUser id users)
         "6" -> do
             putStrLn "Users in System:"
-            mapM_ (putStrLn . show) (listUsers users)
+            mapM_ print (listUsers users)
             mainLoop library users
         "7" -> do
             putStrLn "Enter book ID to borrow:"
@@ -82,20 +90,31 @@ data User = User {
 } deriving (Show, Eq)
 
 type Library = [Book]
+
+parseBookDetails :: String -> Book
+parseBookDetails input = 
+    let parts = words input
+    in Book (parts !! 0) (parts !! 1) (parts !! 2) True
+
+parseUserDetails :: String -> User
+parseUserDetails input = 
+    let parts = words input
+    in User (parts !! 0) (unwords (drop 1 parts))
+
 addBook :: Book -> Library -> Library
 addBook book library = book : library
 
 
 removeBook :: String -> Library -> Library
-removeBook id library = filter (\book -> uniqueID book /= id) library
+removeBook id = filter (\book -> uniqueID book /= id)
 
 
-adduser :: User -> [User] -> [User]
-adduser user users = user : users
+addUser :: User -> [User] -> [User]
+addUser user users = user : users
 
 
-removeusers :: String -> [User] -> [User]
-removeusers id users = filter (\user -> userID user /= id) users
+removeUser :: String -> [User] -> [User]
+removeUser id = filter (\user -> userID user /= id)
 
 
 borrowBook :: String -> String -> Library -> [User] -> (Library, [User])
@@ -114,7 +133,7 @@ returnBook bookID userID library users =
         Nothing -> (library, users)
 
 lookupBookByID :: String -> Library -> Maybe Book
-lookupBookByID id library = find (\book -> uniqueID book == id) library
+lookupBookByID id = find (\book -> uniqueID book == id)
 
 
 updateBookStatus :: String -> Library -> Bool -> Library
@@ -122,12 +141,12 @@ updateBookStatus id library newStatus =
     map (\book -> if uniqueID book == id then book { status = newStatus } else book) library
 
 
-    listbooks :: Library -> [String]
-listbooks library = map title library
+listBooks :: Library -> [String]
+listBooks = map title
 
 
-listusers :: [User] -> [String]
-listusers users = map name users
+listUsers :: [User] -> [String]
+listUsers = map name
 
 
 map :: (a -> b) -> [a] -> [b]
@@ -140,18 +159,8 @@ filter p (x:xs)
     | p x       = x : filter p xs
     | otherwise = filter p xs
 
-    -- Example usage
-    let library = [Book "1" "1984" "George Orwell" True]
-    let updatedLibrary = addBook (Book "2" "Brave New World" "Aldous Huxley" True) library
-    print updatedLibrary
-    lookupBookByTitle :: String -> Library -> Maybe Book
-    lookupBookByTitle title library = find (\book -> title book == title) libraryg
+lookupBookByTitle :: String -> Library -> Maybe Book
+lookupBookByTitle searchTitle = find (\book -> title book == searchTitle)
 
-    find :: (a -> Bool) -> [a] -> Maybe a
-    find _ [] = Nothing
-    find p (x:xs)
-        | p x       = Just x
-        | otherwise = find p xs
-        
-        getBookStatus :: String -> Library -> Maybe Bool
-        getBookStatus title library = fmap status (lookupBookByTitle title library)
+getBookStatus :: String -> Library -> Maybe Bool
+getBookStatus title library = fmap status (lookupBookByTitle title library)
