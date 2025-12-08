@@ -33,30 +33,38 @@ mainLoop library users = do
     option <- getLine
     case option of
         "1" -> do
-            putStrLn "Enter book details (ID, Title, Author):"
-            details <- getLine
-            let book = parseBookDetails details
+            putStr "Enter book ID: "
+            bookID <- getLine
+            putStr "Enter book title: "
+            bookTitle <- getLine
+            putStr "Enter book author: "
+            bookAuthor <- getLine
+            let book = Book bookID bookTitle bookAuthor True
             mainLoop (addBook book library) users
         "2" -> do
             putStrLn "Enter book ID to remove:"
             id <- getLine
             mainLoop (removeBook id library) users
         "3" -> do
-            putStrLn "Books in Library:"
+            putStrLn "\nBooks in Library:"
             mapM_ print (listBooks library)
+            putStrLn ""
             mainLoop library users
         "4" -> do
-            putStrLn "Enter user details (ID, Name):"
-            details <- getLine
-            let user = parseUserDetails details
+            putStr "Enter user ID: "
+            userID <- getLine
+            putStr "Enter user name: "
+            userName <- getLine
+            let user = User userID userName
             mainLoop library (addUser user users)
         "5" -> do
             putStrLn "Enter user ID to remove:"
             id <- getLine
             mainLoop library (removeUser id users)
         "6" -> do
-            putStrLn "Users in System:"
+            putStrLn "\nUsers in System:"
             mapM_ print (listUsers users)
+            putStrLn ""
             mainLoop library users
         "7" -> do
             putStrLn "Enter book ID to borrow:"
