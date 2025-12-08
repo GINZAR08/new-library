@@ -47,7 +47,8 @@ mainLoop library users = do
             mainLoop (removeBook id library) users
         "3" -> do
             putStrLn "\nBooks in Library:"
-            mapM_ print (listBooks library)
+            mapM_ (\book -> putStrLn $ uniqueID book ++ ": " ++ title book ++ " by " ++ author book ++ 
+                   " - " ++ (if status book then "Available" else "Borrowed")) library
             putStrLn ""
             mainLoop library users
         "4" -> do
@@ -67,19 +68,37 @@ mainLoop library users = do
             putStrLn ""
             mainLoop library users
         "7" -> do
-            putStrLn "Enter book ID to borrow:"
+            putStr "Enter book ID to borrow: "
             bookID <- getLine
-            putStrLn "Enter user ID:"
+            putStr "Enter user ID: "
             userID <- getLine
-            let (updatedLibrary, updatedUsers) = borrowBook bookID userID library users
-            mainLoop updatedLibrary updatedUsers
+            case lookupBookByID bookID library of
+                Just book | status book -> do
+                    let (updatedLibrary, updatedUsers) = borrowBook bookID userID library users
+                    putStrLn "Book borrowed successfully!"
+                    mainLoop updatedLibrary updatedUsers
+                          | otherwise -> do
+                    putStrLn "Book is already borrowed!"
+                    mainLoop library users
+                Nothing -> do
+                    putStrLn "Book not found!"
+                    mainLoop library users
         "8" -> do
-            putStrLn "Enter book ID to return:"
+            putStr "Enter book ID to return: "
             bookID <- getLine
-            putStrLn "Enter user ID:"
+            putStr "Enter user ID: "
             userID <- getLine
-            let (updatedLibrary, updatedUsers) = returnBook bookID userID library users
-            mainLoop updatedLibrary updatedUsers
+            case lookupBookByID bookID library of
+                Just book | not (status book) -> do
+                    let (updatedLibrary, updatedUsers) = returnBook bookID userID library users
+                    putStrLn "Book returned successfully!"
+                    mainLoop updatedLibrary updatedUsers
+                          | otherwise -> do
+                    putStrLn "Book was not borrowed!"
+                    mainLoop library users
+                Nothing -> do
+                    putStrLn "Book not found!"
+                    mainLoop library users
         "9" -> putStrLn "Exiting..."
         _   -> do
             putStrLn "Invalid option. Please try again."
