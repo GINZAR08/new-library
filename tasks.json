@@ -1,5 +1,4 @@
 {
-  // Automatically created by phoityne-vscode extension.
 
   "version": "2.0.0",
   "presentation": {
@@ -8,7 +7,7 @@
   },
   "tasks": [
     {
-      // F7
+      // F6
       "group": {
         "kind": "build",
         "isDefault": true
@@ -19,7 +18,7 @@
       "command": "stack build"
     },
     {
-      // F6
+      // F7
       "group": "build",
       "type": "shell",
       "label": "haskell clean & build",
@@ -39,7 +38,7 @@
       "command": "stack test"
     },
     {
-      // F6
+      // F9
       "isBackground": true,
       "type": "shell",
       "label": "haskell watch",
