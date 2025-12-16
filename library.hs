@@ -13,22 +13,69 @@ main = do
             Book "5" "The Catcher in the Rye" "J.D. Salinger" False
             ]
     let users = [
-            User "101" "Alice Johnson",
-            User "102" "Bob Smith"
+            User "101" "Alice Johnson" "user123",
+            User "102" "Bob Smith" "user456"
             ]
-    mainLoop library users
+    loginScreen library users
 
-mainLoop :: Library -> [User] -> IO ()
-mainLoop library users = do
+loginScreen :: Library -> [User] -> IO ()
+loginScreen library users = do
+    putStrLn "\n=== LOGIN ==="
+    putStrLn "1. Login as Admin"
+    putStrLn "2. Login as User"
+    putStrLn "3. Create New Account"
+    putStrLn "4. Exit"
+    putStr "Choose an option: "
+    option <- getLine
+    case option of
+        "1" -> do
+            putStr "Enter admin password: "
+            password <- getLine
+            if password == "admin123"
+                then adminMenu library users
+                else do
+                    putStrLn "Incorrect password!"
+                    loginScreen library users
+        "2" -> do
+            putStr "Enter user ID: "
+            uid <- getLine
+            putStr "Enter password: "
+            password <- getLine
+            case find (\u -> userID u == uid && userPassword u == password) users of
+                Just user -> userMenu library users uid
+                Nothing -> do
+                    putStrLn "Invalid credentials!"
+                    loginScreen library users
+        "3" -> do
+            putStr "Enter new user ID: "
+            uid <- getLine
+            case find (\u -> userID u == uid) users of
+                Just _ -> do
+                    putStrLn "User ID already exists!"
+                    loginScreen library users
+                Nothing -> do
+                    putStr "Enter your name: "
+                    userName <- getLine
+                    putStr "Create password: "
+                    password <- getLine
+                    let newUser = User uid userName password
+                    putStrLn "Account created successfully!"
+                    loginScreen library (newUser : users)
+        "4" -> putStrLn "Exiting..."
+        _ -> do
+            putStrLn "Invalid option!"
+            loginScreen library users
+
+adminMenu :: Library -> [User] -> IO ()
+adminMenu library users = do
+    putStrLn "\n=== ADMIN MENU ==="
     putStrLn "1. Add Book"
     putStrLn "2. Remove Book"
     putStrLn "3. List Books"
     putStrLn "4. Add User"
     putStrLn "5. Remove User"
     putStrLn "6. List Users"
-    putStrLn "7. Borrow Book"
-    putStrLn "8. Return Book"
-    putStrLn "9. Exit"
+    putStrLn "7. Logout"
     putStr "Choose an option: "
     option <- getLine
     case option of
@@ -40,69 +87,93 @@ mainLoop library users = do
             putStr "Enter book author: "
             bookAuthor <- getLine
             let book = Book bookID bookTitle bookAuthor True
-            mainLoop (addBook book library) users
+            putStrLn "Book added successfully!"
+            adminMenu (addBook book library) users
         "2" -> do
-            putStrLn "Enter book ID to remove:"
+            putStr "Enter book ID to remove: "
             id <- getLine
-            mainLoop (removeBook id library) users
+            putStrLn "Book removed successfully!"
+            adminMenu (removeBook id library) users
         "3" -> do
             putStrLn "\nBooks in Library:"
             mapM_ (\book -> putStrLn $ uniqueID book ++ ": " ++ title book ++ " by " ++ author book ++ 
                    " - " ++ (if status book then "Available" else "Borrowed")) library
             putStrLn ""
-            mainLoop library users
+            adminMenu library users
         "4" -> do
             putStr "Enter user ID: "
             userID <- getLine
             putStr "Enter user name: "
             userName <- getLine
-            let user = User userID userName
-            mainLoop library (addUser user users)
+            putStr "Enter user password: "
+            userPassword <- getLine
+            let user = User userID userName userPassword
+            putStrLn "User added successfully!"
+            adminMenu library (addUser user users)
         "5" -> do
-            putStrLn "Enter user ID to remove:"
+            putStr "Enter user ID to remove: "
             id <- getLine
-            mainLoop library (removeUser id users)
+            putStrLn "User removed successfully!"
+            adminMenu library (removeUser id users)
         "6" -> do
             putStrLn "\nUsers in System:"
-            mapM_ print (listUsers users)
+            mapM_ (\user -> putStrLn $ userID user ++ ": " ++ name user) users
             putStrLn ""
-            mainLoop library users
-        "7" -> do
+            adminMenu library users
+        "7" -> loginScreen library users
+        _ -> do
+            putStrLn "Invalid option. Please try again."
+            adminMenu library users
+
+userMenu :: Library -> [User] -> String -> IO ()
+userMenu library users currentUserID = do
+    putStrLn "\n=== USER MENU ==="
+    putStrLn "1. List Books"
+    putStrLn "2. Borrow Book"
+    putStrLn "3. Return Book"
+    putStrLn "4. Logout"
+    putStr "Choose an option: "
+
+    option <- getLine
+    case option of
+        "1" -> do
+            putStrLn "\nAvailable Books:"
+            mapM_ (\book -> putStrLn $ uniqueID book ++ ": " ++ title book ++ " by " ++ author book ++ 
+                   " - " ++ (if status book then "Available" else "Borrowed")) library
+            putStrLn ""
+            userMenu library users currentUserID
+        "2" -> do
             putStr "Enter book ID to borrow: "
             bookID <- getLine
-            putStr "Enter user ID: "
-            userID <- getLine
             case lookupBookByID bookID library of
                 Just book | status book -> do
-                    let (updatedLibrary, updatedUsers) = borrowBook bookID userID library users
+                    let (updatedLibrary, updatedUsers) = borrowBook bookID currentUserID library users
                     putStrLn "Book borrowed successfully!"
-                    mainLoop updatedLibrary updatedUsers
+                    userMenu updatedLibrary updatedUsers currentUserID
                           | otherwise -> do
                     putStrLn "Book is already borrowed!"
-                    mainLoop library users
+                    userMenu library users currentUserID
                 Nothing -> do
                     putStrLn "Book not found!"
-                    mainLoop library users
-        "8" -> do
+                    userMenu library users currentUserID
+        "3" -> do
             putStr "Enter book ID to return: "
             bookID <- getLine
-            putStr "Enter user ID: "
-            userID <- getLine
             case lookupBookByID bookID library of
                 Just book | not (status book) -> do
-                    let (updatedLibrary, updatedUsers) = returnBook bookID userID library users
+                    let (updatedLibrary, updatedUsers) = returnBook bookID currentUserID library users
                     putStrLn "Book returned successfully!"
-                    mainLoop updatedLibrary updatedUsers
+                    userMenu updatedLibrary updatedUsers currentUserID
                           | otherwise -> do
                     putStrLn "Book was not borrowed!"
-                    mainLoop library users
+                    userMenu library users currentUserID
                 Nothing -> do
                     putStrLn "Book not found!"
-                    mainLoop library users
-        "9" -> putStrLn "Exiting..."
-        _   -> do
+                    userMenu library users currentUserID
+        "4" -> loginScreen library users
+        _ -> do
             putStrLn "Invalid option. Please try again."
-            mainLoop library users
+            userMenu library users currentUserID
 
 data Book = Book {
     uniqueID :: String,
@@ -113,7 +184,8 @@ data Book = Book {
 
 data User = User {
     userID :: String,
-    name :: String
+    name :: String,
+    userPassword :: String
 } deriving (Show, Eq)
 
 type Library = [Book]
@@ -126,7 +198,7 @@ parseBookDetails input =
 parseUserDetails :: String -> User
 parseUserDetails input = 
     let parts = words input
-    in User (parts !! 0) (unwords (drop 1 parts))
+    in User (parts !! 0) (unwords (drop 1 (init parts))) (last parts)
 
 addBook :: Book -> Library -> Library
 addBook book library = book : library
