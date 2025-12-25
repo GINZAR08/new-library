@@ -7,3 +7,8 @@ main = do
     let library = []
     let users = []
     mainLoop library users
+
+mainLoop :: [a0] -> [a1] -> IO ()
+mainLoop library users = do
+    putStrLn "Main loop started"
+    return ()
